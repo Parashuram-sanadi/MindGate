@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">MindGate</string>
+    <string name="accessibility_service_description">MindGate monitors app usage to enforce your daily screen-time limits and help you stay in control.</string>
+    <string name="channel_usage_alerts">Usage Alerts</string>
+    <string name="channel_daily_summary">Daily Summary</string>
+    <string name="channel_wellness_tips">Wellness Tips</string>
+    <string name="onboarding_title_1">Understand Your Habit</string>
+    <string name="onboarding_sub_1">Take a science-backed assessment to learn how your device use affects your wellbeing.</string>
+    <string name="onboarding_title_2">Personalized Limits</string>
+    <string name="onboarding_sub_2">Get smart daily limits tailored to your addiction risk level.</string>
+    <string name="onboarding_title_3">Stay in Control</string>
+    <string name="onboarding_sub_3">Earn extensions through mindful challenges — not mindless scrolling.</string>
+    <string name="get_started">Get Started</string>
+    <string name="icall_helpline">9152987821</string>
+</resources>

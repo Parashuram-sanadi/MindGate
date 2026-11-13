@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Extension Requests
+    match /extension_requests/{requestId} {
+      allow create: if request.auth != null &&
+                    request.resource.data.studentUid == request.auth.uid &&
+                    (request.resource.data.status == 'PENDING' || request.resource.data.status == 'EARNED') &&
+                    request.resource.data.parentUid is string &&
+                    request.resource.data.parentUid != "";
+
+      allow read: if request.auth != null &&
+                  (resource.data.studentUid == request.auth.uid ||
+                   resource.data.parentUid == request.auth.uid);
+
+      allow update: if request.auth != null && (
+        (resource.data.parentUid == request.auth.uid &&
+         resource.data.status == 'PENDING' &&
+         (request.resource.data.status == 'APPROVED' || request.resource.data.status == 'DENIED'))
+        ||
+        (resource.data.studentUid == request.auth.uid &&
+         resource.data.status == 'APPROVED' &&
+         request.resource.data.status == 'CONSUMED')
+      ) &&
+      request.resource.data.studentUid == resource.data.studentUid &&
+      request.resource.data.parentUid == resource.data.parentUid;
+    }
+
+    // 2. Parent-Child Pairing Links
+    match /parentChildLinks/{linkId} {
+      allow create: if request.auth != null && request.resource.data.parentUid == request.auth.uid;
+      allow read: if request.auth != null &&
+                  (resource.data.studentUid == request.auth.uid ||
+                   resource.data.parentUid == request.auth.uid ||
+                   resource.data.studentId == request.auth.uid ||
+                   resource.data.parentId == request.auth.uid);
+    }
+
+    // 3. FCM Device Tokens
+    match /deviceTokens/{userId} {
+      allow read, write: if request.auth != null && userId == request.auth.uid;
+    }
+
+    // 4. Extension Approval Ledger Audit Trail
+    match /extensionLedger/{ledgerId} {
+      allow create: if request.auth != null &&
+                    (request.resource.data.parentUid == request.auth.uid ||
+                     request.resource.data.parentId == request.auth.uid);
+      allow read: if request.auth != null &&
+                  (resource.data.studentUid == request.auth.uid ||
+                   resource.data.parentUid == request.auth.uid ||
+                   resource.data.studentId == request.auth.uid ||
+                   resource.data.parentId == request.auth.uid);
+    }
+
+    // Default block for all unmapped paths
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

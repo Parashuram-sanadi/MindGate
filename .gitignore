@@ -1,0 +1,39 @@
+# ==============================================================================
+# MINDGATE DIGITAL WELLBEING PLATFORM — TOP-LEVEL GITIGNORE
+# ==============================================================================
+
+# ── Android Build Artifacts & Local Credentials ──────────────────────────────
+**/build/
+**/.gradle/
+**/.cxx/
+local.properties
+*.jks
+*.keystore
+
+# ── Python Cache & Virtual Environments ───────────────────────────────────────
+**/__pycache__/
+*.py[cod]
+**/venv/
+**/.venv/
+**/.pytest_cache/
+catboost_info/
+
+# ── Secrets & Service Account Keys ───────────────────────────────────────────
+.env
+.env.*
+**/secrets/
+**/firebase-service-account.json
+*.key
+*.pem
+
+# ── Databases ────────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Logs & IDEs ──────────────────────────────────────────────────────────────
+*.log
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

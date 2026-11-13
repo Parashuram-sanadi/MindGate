@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary_purple">#6750A4</color>
+    <color name="secondary_green">#4CAF50</color>
+    <color name="error_red">#F44336</color>
+    <color name="background_light">#FEFBFF</color>
+    <color name="surface_light">#FFFBFE</color>
+    <color name="risk_low">#4CAF50</color>
+    <color name="risk_moderate">#FF9800</color>
+    <color name="risk_high">#F44336</color>
+    <color name="risk_severe">#9C27B0</color>
+</resources>

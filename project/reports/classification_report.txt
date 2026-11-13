@@ -1,0 +1,12 @@
+Model: CatBoost
+
+              precision    recall  f1-score   support
+
+         Low       0.96      1.00      0.98        27
+    Moderate       0.87      0.93      0.90        29
+        High       0.86      0.60      0.71        10
+      Severe       1.00      1.00      1.00        14
+
+    accuracy                           0.93        80
+   macro avg       0.92      0.88      0.90        80
+weighted avg       0.92      0.93      0.92        80

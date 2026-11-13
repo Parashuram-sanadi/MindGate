@@ -1,0 +1,9 @@
+{
+  "best_model_name": "CatBoost",
+  "label_order": [
+    "Low",
+    "Moderate",
+    "High",
+    "Severe"
+  ]
+}

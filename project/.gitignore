@@ -1,0 +1,50 @@
+# ==============================================================================
+# MINDGATE FASTAPI BACKEND & ML ENGINE — GITIGNORE CONFIGURATION
+# ==============================================================================
+
+# ── Python Cache & Bytecode ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+
+# ── Virtual Environments ──────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ── Environment Variables & Secret Credentials ───────────────────────────────
+.env
+.env.*
+!.env.example
+secrets/
+firebase-service-account.json
+*.pem
+*.key
+
+# ── SQLite Backend Databases (Contains Private User Data) ─────────────────────
+*.db
+*.sqlite
+*.sqlite3
+mindgate_backend.db
+mindgate-backend.db
+
+# ── Logs & Debug Outputs ──────────────────────────────────────────────────────
+*.log
+catboost_info/
+server_*.log
+startup_*.log
+
+# ── IDE & Operating System Files ─────────────────────────────────────────────
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

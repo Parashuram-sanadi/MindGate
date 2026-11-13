@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "667786982333",
+    "project_id": "gadget-usage-control",
+    "storage_bucket": "gadget-usage-control.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:667786982333:android:e38dfa27a8aa936e5e98d4",
+        "android_client_info": {
+          "package_name": "com.mindgate"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "667786982333-q1b8tu1sp2704m2cgf1v1c63h6acam4v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mindgate",
+            "certificate_hash": "1200eb188715526c71b6ba2d11ae0f488c0b99ab"
+          }
+        },
+        {
+          "client_id": "667786982333-okvfhf9gqp9c220rt5ocl33qh5mnfi3c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA89SX6cXhUUoWlBVO3maaLYHQ1AQVonqE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "667786982333-okvfhf9gqp9c220rt5ocl33qh5mnfi3c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

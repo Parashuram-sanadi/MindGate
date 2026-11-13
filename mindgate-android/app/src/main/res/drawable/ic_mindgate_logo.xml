@@ -1,0 +1,50 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- White Circular Outer Area -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M100,0 A100,100 0 1,1 100,200 A100,100 0 1,1 100,0 Z" />
+
+    <!-- Soft Pastel Green Background -->
+    <path
+        android:fillColor="#E9F5EF"
+        android:pathData="M100,20 A80,80 0 1,1 100,180 A80,80 0 1,1 100,20 Z" />
+
+    <!-- Central Symbol: The Unified Duality (Gemini + Brain + Phone) -->
+
+    <!-- Gemini Pillars / Brain Silhouette -->
+    <!-- Left Half -->
+    <path
+        android:fillColor="#2D6A4F"
+        android:pathData="M88,55 C72,55 62,70 62,100 C62,130 72,145 88,145 L92,145 L92,55 Z" />
+
+    <!-- Right Half -->
+    <path
+        android:fillColor="#1B4332"
+        android:pathData="M112,55 C128,55 138,70 138,100 C138,130 128,145 112,145 L108,145 L108,55 Z" />
+
+    <!-- Digital Screen Silhouette (Negative Space / Highlight) -->
+    <path
+        android:fillColor="#FBFDFA"
+        android:pathData="M94,62 L106,62 Q110,62 110,67 L110,133 Q110,138 106,138 L94,138 Q90,138 90,133 L90,67 Q90,62 94,62 Z" />
+
+    <!-- Subtle Healthcare Pulse Line -->
+    <path
+        android:strokeColor="#38B000"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M93,103 L97,103 L99,94 L101,112 L103,103 L107,103" />
+
+    <!-- Premium Symmetry Connectors -->
+    <path
+        android:strokeColor="#1B4332"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M88,55 L112,55 M88,145 L112,145" />
+
+</vector>
