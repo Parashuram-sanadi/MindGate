@@ -43,6 +43,8 @@ data class DashboardUiState(
     val streak: Int = 0,
     val isGlobalEnabled: Boolean = true,
     val isLinked: Boolean = false,
+    val linkedCount: Int = 0,
+    val linkedParents: List<com.mindgate.data.remote.dto.LinkedParentInfo> = emptyList(),
     val isLoading: Boolean = false,
     val pendingRequest: ExtensionRequest? = null,
     val requestStatus: String? = null, // PENDING, APPROVED, DENIED
@@ -100,7 +102,10 @@ class HomeViewModel @Inject constructor(
                 
                 // Check connection status
                 val connectionResult = parentRepository.checkConnectionStatus()
-                val isLinked = connectionResult is NetworkResult.Success && connectionResult.data.isLinked
+                val connData = (connectionResult as? NetworkResult.Success)?.data
+                val isLinked = connData?.isLinked == true
+                val linkedCount = connData?.linkedCount ?: if (isLinked) 1 else 0
+                val linkedParents = connData?.linkedParents ?: emptyList()
 
                 combine(
                     assessmentRepository.observeLatestResult(userId),
@@ -124,6 +129,8 @@ class HomeViewModel @Inject constructor(
                                 streak = streak,
                                 isGlobalEnabled = settings.limitsActive,
                                 isLinked = isLinked || isParentLinked,
+                                linkedCount = if (isLinked || isParentLinked) maxOf(linkedCount, 1) else 0,
+                                linkedParents = linkedParents,
                                 isLoading = false
                             )
                         }
@@ -163,6 +170,8 @@ class HomeViewModel @Inject constructor(
                                 streak = streak,
                                 isGlobalEnabled = settings.limitsActive,
                                 isLinked = isLinked || isParentLinked,
+                                linkedCount = if (isLinked || isParentLinked) maxOf(linkedCount, 1) else 0,
+                                linkedParents = linkedParents,
                                 isLoading = false
                             )
                         }
@@ -269,6 +278,14 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val userId = prefs.currentUserId.first()
             if (userId > 0) checkUsagePermissionAndRefreshInternal(userId)
+        }
+    }
+
+    fun unlinkParent(parentId: Long) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            parentRepository.revokeLink(parentId)
+            syncConnection()
         }
     }
 

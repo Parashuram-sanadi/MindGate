@@ -153,6 +153,9 @@ class SessionManager @Inject constructor(
             prefs.remove(IS_LINKED)
             prefs.remove(LINKED_PARENT_UID)
             prefs.remove(ROLE)
+            prefs.remove(ONBOARDING_DONE)
+            prefs.remove(ASSESSMENT_STEP)
+            prefs.remove(ASSESSMENT_ANSWERS)
         }
         _logoutEvents.emit(Unit)
         MindGateLog.d("SESSION", "Session cleared")

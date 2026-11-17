@@ -174,52 +174,28 @@ async def select_role(payload: SelectRoleRequest, current_user: User = Depends(g
 
 @app.post("/api/auth/google", tags=["Auth"])
 async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
-    """Verifies a Google ID token and logs the user in or signals role selection."""
+    """Verifies a Google ID token and signals role selection ('How would you like to use MindGate?')."""
     from google.oauth2 import id_token
     from google.auth.transport import requests as google_requests
 
     CLIENT_ID = "667786982333-okvfhf9gqp9c220rt5ocl33qh5mnfi3c.apps.googleusercontent.com"
 
     try:
-        # Verify the ID token using google-auth library (Android sends Google ID Token)
+        # Verify the ID token using google-auth library
         decoded_token = id_token.verify_oauth2_token(payload.id_token, google_requests.Request(), CLIENT_ID)
 
         email = decoded_token.get("email")
         if not email:
             raise HTTPException(status_code=400, detail="ID token does not contain email")
 
-        user = db.query(User).filter(User.email == email).first()
-        if user:
-            # Sync Firebase UID if missing
-            if not user.firebase_uid:
-                user.firebase_uid = decoded_token.get("sub")
-                db.commit()
-
-            # Existing user - return standard response (same as /token)
-            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-            access_token = create_access_token(
-                data={"sub": user.email}, expires_delta=access_token_expires
-            )
-            # Use real Firebase UID for custom token if we have it
-            firebase_token = generate_firebase_token(user.firebase_uid or user.id, user.role)
-            return {
-                "access_token": access_token,
-                "token_type": "bearer",
-                "role": user.role,
-                "user_id": user.id,
-                "name": user.name,
-                "email": user.email,
-                "firebase_token": firebase_token
-            }
-        else:
-            # New user - role required to complete registration
-            return {"status": "role_required", "email": email}
+        # Every Google login prompts role selection ('How would you like to use MindGate?')
+        return {"status": "role_required", "email": email}
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
 
 @app.post("/api/auth/google/complete", tags=["Auth"], response_model=AuthResponse)
 async def google_auth_complete(payload: GoogleAuthCompleteRequest, db: Session = Depends(get_db)):
-    """Completes registration for a new Google user by assigning a role."""
+    """Completes Google login or role-selection by updating active role for the session."""
     from google.oauth2 import id_token
     from google.auth.transport import requests as google_requests
     from api.auth import get_password_hash
@@ -240,7 +216,6 @@ async def google_auth_complete(payload: GoogleAuthCompleteRequest, db: Session =
         if not user:
             # Create new user
             name = payload.name or decoded_token.get("name") or email.split("@")[0]
-            # Use random secret for Google-only users (won't be used for login)
             fake_password = secrets.token_urlsafe(32)
             user = User(
                 name=name,
@@ -253,12 +228,19 @@ async def google_auth_complete(payload: GoogleAuthCompleteRequest, db: Session =
             db.add(user)
             db.commit()
             db.refresh(user)
+        else:
+            # Existing user - update active role for session without creating duplicate account
+            user.role = payload.role
+            user.role_selected = True
+            if not user.firebase_uid:
+                user.firebase_uid = decoded_token.get("sub")
+            db.commit()
+            db.refresh(user)
 
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": user.email}, expires_delta=access_token_expires
         )
-        # Use real Firebase UID for custom token if we have it
         firebase_token = generate_firebase_token(user.firebase_uid or user.id, user.role)
 
         return {
@@ -270,6 +252,8 @@ async def google_auth_complete(payload: GoogleAuthCompleteRequest, db: Session =
             "email": user.email,
             "firebase_token": firebase_token
         }
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
 
@@ -306,21 +290,35 @@ async def health_check(svc: ModelService = Depends(get_model_service)):
 @app.get("/api/user/connection-status", response_model=ConnectionStatusResponse, tags=["Parent Monitoring"])
 async def get_connection_status(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if current_user.role == "student":
-        rel = db.query(ParentChildRelation).filter(
+        rels = db.query(ParentChildRelation).filter(
             ParentChildRelation.student_id == current_user.id,
             ParentChildRelation.status == "active"
-        ).first()
+        ).all()
 
-        linked_parent_firebase_uid = None
-        if rel:
+        linked_parents = []
+        first_parent_id = None
+        first_parent_firebase_uid = None
+
+        for idx, rel in enumerate(rels):
             parent = db.query(User).get(rel.parent_id)
-            linked_parent_firebase_uid = parent.firebase_uid or str(parent.id)
+            if parent:
+                parent_fuid = parent.firebase_uid or str(parent.id)
+                if idx == 0:
+                    first_parent_id = parent.id
+                    first_parent_firebase_uid = parent_fuid
+                linked_parents.append({
+                    "parent_id": parent.id,
+                    "parent_name": parent.name,
+                    "parent_firebase_uid": parent_fuid
+                })
 
         return {
-            "is_linked": rel is not None,
+            "is_linked": len(rels) > 0,
+            "linked_count": len(rels),
             "role": current_user.role,
-            "linked_parent_id": rel.parent_id if rel else None,
-            "linked_parent_firebase_uid": linked_parent_firebase_uid
+            "linked_parent_id": first_parent_id,
+            "linked_parent_firebase_uid": first_parent_firebase_uid,
+            "linked_parents": linked_parents
         }
     elif current_user.role == "parent":
         rels = db.query(ParentChildRelation).filter(
@@ -835,6 +833,9 @@ async def list_parent_alerts(current_user: User = Depends(get_current_user), db:
             "status": a.status
         })
     return results
+
+@app.delete("/api/parent/children/{student_id}/link", status_code=204, tags=["Parent Monitoring"])
+async def revoke_link(student_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if current_user.role == "parent":
         rel = db.query(ParentChildRelation).filter(
             ParentChildRelation.parent_id == current_user.id,

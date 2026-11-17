@@ -350,7 +350,11 @@ fun AuthScreen(
 
                         MindGateButton(
                             text = "Sign in with Google",
-                            onClick = { googleLauncher.launch(googleSignInClient.signInIntent) },
+                            onClick = {
+                                googleSignInClient.signOut().addOnCompleteListener {
+                                    googleLauncher.launch(googleSignInClient.signInIntent)
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             style = ButtonStyle.Neutral,
                             isSecondary = true,
@@ -387,14 +391,14 @@ fun AuthScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        "Welcome to MindGate",
+                        "How would you like to use MindGate?",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Black,
                         textAlign = TextAlign.Center
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "To personalize your experience, please tell us who you are.",
+                        "Select your role to continue.",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = TextSecondary
@@ -402,7 +406,7 @@ fun AuthScreen(
                     Spacer(Modifier.height(32.dp))
                     
                     MindGateButton(
-                        text = "I am a Student",
+                        text = "Continue as Student",
                         onClick = { viewModel.completeGoogleAuth("student") { id, role, needs -> onSuccess(id, role, needs) } },
                         modifier = Modifier.fillMaxWidth(),
                         style = ButtonStyle.Brand,
@@ -410,7 +414,7 @@ fun AuthScreen(
                     )
                     Spacer(Modifier.height(12.dp))
                     MindGateButton(
-                        text = "I am a Parent",
+                        text = "Continue as Parent",
                         onClick = { viewModel.completeGoogleAuth("parent") { id, role, needs -> onSuccess(id, role, needs) } },
                         modifier = Modifier.fillMaxWidth(),
                         style = ButtonStyle.Brand,

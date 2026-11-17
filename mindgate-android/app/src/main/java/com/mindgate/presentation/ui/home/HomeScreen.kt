@@ -48,6 +48,7 @@ fun HomeScreen(
     onParentConnect: () -> Unit,
     onProfileClick: () -> Unit,
     onExploreClick: () -> Unit = {},
+    onStartAssessment: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     var tab by remember { mutableIntStateOf(0) }
@@ -134,7 +135,10 @@ fun HomeScreen(
                 0 -> DashboardScreen(
                     viewModel = viewModel,
                     onAddRestriction = onAddRestriction,
-                    onExploreClick = onExploreClick
+                    onExploreClick = onExploreClick,
+                    onParentConnect = onParentConnect,
+                    onStartAssessment = onStartAssessment,
+                    onRetakeAssessment = onRetakeAssessment
                 )
                 1 -> LimitsTabScreen()
                 2 -> GrowthTab(viewModel)

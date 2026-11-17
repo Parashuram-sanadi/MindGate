@@ -77,25 +77,23 @@ class BlockedOverlayViewModel @Inject constructor(
                 return@launch
             }
 
-            // 2. Resolve Parent ID (Primary: Firestore for real UID, Secondary: SessionManager)
-            // We search Firestore first because it contains the long Firebase string (JRFu...)
-            var parentId = firestoreRepository.getParentIdForStudent(currentUid)
-            
-            if (parentId == null || parentId.isBlank() || parentId.length < 5) {
-                parentId = sessionManager.linkedParentUid.first()
+            // 2. Resolve Parent IDs (Primary: Firestore for real UIDs, Secondary: SessionManager)
+            val parentIds = firestoreRepository.getParentIdsForStudent(currentUid).toMutableList()
+            val savedParentId = sessionManager.linkedParentUid.first()
+            if (!savedParentId.isNullOrBlank() && savedParentId.length > 5 && !parentIds.contains(savedParentId)) {
+                parentIds.add(savedParentId)
             }
             
-            if (parentId != null && parentId.isNotBlank() && parentId.length > 5) {
-                val studentName = userRepository.getUser(sessionManager.getUserId())?.name ?: "sonu"
+            if (parentIds.isNotEmpty()) {
+                val studentName = userRepository.getUser(sessionManager.getUserId())?.name ?: "Student"
                 
-                // 3. Create request in extension_requests (Standardizing on Uppercase PENDING)
-                val result = firestoreRepository.createExtensionRequest(
+                // 3. Create request in extension_requests for all linked parents
+                val result = firestoreRepository.createExtensionRequestsForStudent(
                     studentUid = currentUid,
-                    parentUid = parentId,
+                    parentUids = parentIds,
                     appPackage = targetPackage,
                     appName = appName,
-                    studentName = studentName,
-                    status = "PENDING"
+                    studentName = studentName
                 )
                 
                 result.onSuccess { docId ->

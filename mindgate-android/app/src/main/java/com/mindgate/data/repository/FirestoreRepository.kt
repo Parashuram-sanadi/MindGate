@@ -84,22 +84,47 @@ class FirestoreRepository @Inject constructor(
         awaitClose { listener.remove() }
     }
 
-    suspend fun getParentIdForStudent(studentUid: String): String? {
+    suspend fun getParentIdsForStudent(studentUid: String): List<String> {
         return try {
-            // Check studentId first (alias)
-            var query = linksCollection.whereEqualTo("studentId", studentUid).limit(1).get().await()
-            var doc = query.documents.firstOrNull()
-            
-            if (doc == null) {
-                // Try studentUid field
-                query = linksCollection.whereEqualTo("studentUid", studentUid).limit(1).get().await()
-                doc = query.documents.firstOrNull()
+            val parentUids = mutableSetOf<String>()
+            val q1 = linksCollection.whereEqualTo("studentId", studentUid).get().await()
+            for (doc in q1.documents) {
+                val p = doc.getString("parentId") ?: doc.getString("parentUid")
+                if (!p.isNullOrBlank()) parentUids.add(p)
             }
-
-            doc?.getString("parentId") ?: doc?.getString("parentUid")
+            val q2 = linksCollection.whereEqualTo("studentUid", studentUid).get().await()
+            for (doc in q2.documents) {
+                val p = doc.getString("parentId") ?: doc.getString("parentUid")
+                if (!p.isNullOrBlank()) parentUids.add(p)
+            }
+            parentUids.toList()
         } catch (e: Exception) {
-            null
+            emptyList()
         }
+    }
+
+    suspend fun getParentIdForStudent(studentUid: String): String? {
+        val ids = getParentIdsForStudent(studentUid)
+        return ids.firstOrNull()
+    }
+
+    suspend fun createExtensionRequestsForStudent(
+        studentUid: String,
+        parentUids: List<String>,
+        appPackage: String,
+        studentName: String,
+        appName: String = "",
+        requestedMinutes: Int = 15
+    ): Result<String> {
+        if (parentUids.isEmpty()) return Result.failure(Exception("No linked parent found"))
+        var firstDocId: String? = null
+        for (parentUid in parentUids.distinct()) {
+            val res = createExtensionRequest(studentUid, parentUid, appPackage, studentName, appName, requestedMinutes)
+            if (res.isSuccess && firstDocId == null) {
+                firstDocId = res.getOrNull()
+            }
+        }
+        return if (firstDocId != null) Result.success(firstDocId) else Result.failure(Exception("Failed to create requests"))
     }
 
     /**

@@ -140,17 +140,52 @@ fun ProfileTabScreen(
                         icon = Icons.Default.Assignment
                     )
                     
-                    MindGateButton(
-                        text = if (state.isLinked) "Parent Linked" else "Link a Parent Account",
-                        onClick = { if (!state.isLinked) onParentConnect() },
-                        modifier = Modifier.fillMaxWidth(),
-                        style = if (state.isLinked) ButtonStyle.Success else ButtonStyle.Neutral,
-                        isSecondary = !state.isLinked,
-                        icon = if (state.isLinked) Icons.Default.CheckCircle else Icons.Default.Link,
-                        enabled = !state.isLinked
-                    )
-                    
                     if (state.isLinked) {
+                        val countText = if (state.linkedCount > 1) "Linked Parents (${state.linkedCount})" else "Parent Linked"
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = PrimaryContainer.copy(alpha = 0.3f),
+                            shape = Shapes.medium,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.3f))
+                        ) {
+                            Column(Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ActionSuccess)
+                                    Spacer(Modifier.width(12.dp))
+                                    Text(countText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                }
+                                
+                                if (state.linkedParents.isNotEmpty()) {
+                                    Spacer(Modifier.height(12.dp))
+                                    state.linkedParents.forEach { parent ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp), tint = TextSecondary)
+                                                Spacer(Modifier.width(8.dp))
+                                                Text(parent.parentName, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                            }
+                                            TextButton(onClick = { viewModel.unlinkParent(parent.parentId) }) {
+                                                Text("Unlink", style = MaterialTheme.typography.labelMedium, color = ActionDanger, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        MindGateButton(
+                            text = "Link Another Parent Account",
+                            onClick = onParentConnect,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = ButtonStyle.Neutral,
+                            isSecondary = true,
+                            icon = Icons.Default.Add
+                        )
+
                         MindGateButton(
                             text = "Refresh Connection Status",
                             onClick = { viewModel.syncConnection() },
@@ -159,6 +194,15 @@ fun ProfileTabScreen(
                             isSecondary = true,
                             isLoading = state.isLoading,
                             icon = Icons.Default.Sync
+                        )
+                    } else {
+                        MindGateButton(
+                            text = "Link a Parent Account",
+                            onClick = onParentConnect,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = ButtonStyle.Neutral,
+                            isSecondary = true,
+                            icon = Icons.Default.Link
                         )
                     }
                 }

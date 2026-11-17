@@ -53,13 +53,20 @@ data class ParentAlertResponse(
     @SerializedName("status") val status: String
 )
 
+data class LinkedParentInfo(
+    @SerializedName("parent_id") val parentId: Long,
+    @SerializedName("parent_name") val parentName: String,
+    @SerializedName("parent_firebase_uid") val parentFirebaseUid: String? = null
+)
+
 data class ConnectionStatusResponse(
     @SerializedName("is_linked") val isLinked: Boolean,
     @SerializedName("role") val role: String,
     @SerializedName("linked_count") val linkedCount: Int? = null,
     @SerializedName("linked_parent_id") val linkedParentId: Long? = null,
     @SerializedName("linked_parent_firebase_uid") val linkedParentFirebaseUid: String? = null,
-    @SerializedName("linked_student_ids") val linkedStudentIds: List<Long>? = null
+    @SerializedName("linked_student_ids") val linkedStudentIds: List<Long>? = null,
+    @SerializedName("linked_parents") val linkedParents: List<LinkedParentInfo>? = null
 )
 
 data class ChildUsageResponse(

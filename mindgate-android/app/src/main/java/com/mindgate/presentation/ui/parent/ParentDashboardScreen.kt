@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -238,6 +239,7 @@ fun ParentDashboardScreen(
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
     val children by viewModel.children.collectAsStateWithLifecycle()
+    val selectedStudentId by viewModel.selectedStudentId.collectAsStateWithLifecycle()
     val pendingRequests by viewModel.pendingRequests.collectAsStateWithLifecycle()
     val recentActivity by viewModel.recentActivity.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
@@ -262,9 +264,8 @@ fun ParentDashboardScreen(
 
     val context = LocalContext.current
     val powerManager = remember { context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager }
-    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Requirement 4: Fallback sync on resume
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -275,7 +276,6 @@ fun ParentDashboardScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Requirement 4: Battery Optimization Exemption Prompt (One-time)
     LaunchedEffect(Unit) {
         if (!powerManager.isIgnoringBatteryOptimizations(context.packageName)) {
             try {
@@ -284,7 +284,6 @@ fun ParentDashboardScreen(
                 }
                 context.startActivity(intent)
             } catch (e: Exception) {
-                // Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS as fallback
                 val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
                 context.startActivity(intent)
             }
@@ -306,7 +305,7 @@ fun ParentDashboardScreen(
                         Icon(AppIcons.Sync, contentDescription = "Refresh", tint = ActionPrimary)
                     }
                     IconButton(onClick = onNavigateToConnect) {
-                        Icon(AppIcons.Add, contentDescription = "Connect Child", tint = ActionPrimary)
+                        Icon(Icons.Default.GroupAdd, contentDescription = "Link Another Student", tint = ActionPrimary)
                     }
                     IconButton(onClick = { viewModel.logout(onLogout) }) {
                         Icon(AppIcons.Logout, contentDescription = "Logout", tint = ActionDanger)
@@ -322,7 +321,7 @@ fun ParentDashboardScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text("No children linked yet.", color = TextSecondary)
+                    Text("No students linked yet.", style = MaterialTheme.typography.titleMedium, color = TextSecondary)
                     
                     Spacer(Modifier.height(8.dp))
                     Surface(
@@ -331,19 +330,20 @@ fun ParentDashboardScreen(
                         shape = Shapes.small
                     ) {
                         Text(
-                            text = "My Account ID: $currentUid", 
+                            text = "My Account ID: $currentUid (Tap to Copy)", 
                             style = MaterialTheme.typography.labelSmall, 
                             color = ActionPrimary,
                             modifier = Modifier.padding(8.dp)
                         )
                     }
 
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(24.dp))
                     MindGateButton(
-                        text = "Connect Child",
+                        text = "+ Link Student",
                         onClick = onNavigateToConnect,
                         modifier = Modifier.padding(horizontal = 32.dp),
-                        style = ButtonStyle.Primary
+                        style = ButtonStyle.Primary,
+                        icon = Icons.Default.GroupAdd
                     )
                     Spacer(Modifier.height(16.dp))
                     MindGateButton(
@@ -359,7 +359,7 @@ fun ParentDashboardScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item {
                         Surface(
@@ -369,19 +369,134 @@ fun ParentDashboardScreen(
                             shape = Shapes.small
                         ) {
                             Text(
-                                text = "Account ID: $currentUid (Tap to Copy)", 
+                                text = "Parent Account ID: $currentUid (Tap to Copy)", 
                                 style = MaterialTheme.typography.labelSmall, 
                                 color = TextSecondary,
-                                modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp),
+                                modifier = Modifier.padding(vertical = 4.dp, horizontal = 4.dp),
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
+                        }
+                    }
+
+                    // Linked Students Selector Section
+                    item {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Linked Students (${children.size})",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                )
+                                TextButton(onClick = onNavigateToConnect) {
+                                    Icon(Icons.Default.GroupAdd, contentDescription = null, modifier = Modifier.size(18.dp), tint = Primary)
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("+ Link Another Student", fontWeight = FontWeight.Bold, color = Primary)
+                                }
+                            }
+
+                            Spacer(Modifier.height(8.dp))
+
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(children, key = { it.studentId }) { child ->
+                                    val isSelected = child.studentId == selectedStudentId
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = { viewModel.selectStudent(child.studentId) },
+                                        label = { Text(child.name, fontWeight = FontWeight.Bold) },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Person,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = Primary,
+                                            selectedLabelColor = Color.White,
+                                            selectedLeadingIconColor = Color.White
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Currently Selected Student Overview Card
+                    val selectedChild = children.find { it.studentId == selectedStudentId } ?: children.firstOrNull()
+                    if (selectedChild != null) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                                shape = Shapes.medium
+                            ) {
+                                Column(modifier = Modifier.padding(20.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Surface(
+                                                modifier = Modifier.size(48.dp),
+                                                shape = CircleShape,
+                                                color = PrimaryContainer
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(Icons.Default.Person, null, tint = Primary, modifier = Modifier.size(28.dp))
+                                                }
+                                            }
+                                            Spacer(Modifier.width(16.dp))
+                                            Column {
+                                                Text(selectedChild.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                                Surface(
+                                                    color = ActionSuccess.copy(alpha = 0.1f),
+                                                    shape = RoundedCornerShape(8.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "Active • Monitoring Enabled",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = ActionSuccess,
+                                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        IconButton(onClick = { viewModel.revoke(selectedChild.studentId) }) {
+                                            Icon(Icons.Default.LinkOff, contentDescription = "Unlink Student", tint = ActionDanger)
+                                        }
+                                    }
+
+                                    Spacer(Modifier.height(20.dp))
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        MindGateButton(
+                                            text = "View Usage Details",
+                                            onClick = { onNavigateToChild(selectedChild.studentId) },
+                                            modifier = Modifier.weight(1f),
+                                            style = ButtonStyle.Brand,
+                                            icon = Icons.Default.Analytics
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
                     if (pendingRequests.isNotEmpty()) {
                         item {
                             Text(
-                                "Extension Requests",
+                                "Pending Extension Requests",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = ActionWarning
@@ -393,7 +508,6 @@ fun ParentDashboardScreen(
                                 it.studentId.toString() == (req.studentUid.ifBlank { req.studentId }) 
                             }?.name ?: req.studentName
                             
-                            // Requirement B3: Context for parent (Number of requests today)
                             val countToday = recentActivity.count { 
                                 (it.studentId == req.studentId || it.studentUid == req.studentId)
                             } + 1
@@ -406,8 +520,6 @@ fun ParentDashboardScreen(
                                 onDeny = { viewModel.denyRequest(req.id) }
                             )
                         }
-                        
-                        item { Spacer(Modifier.height(8.dp)) }
                     }
 
                     if (recentActivity.isNotEmpty()) {
@@ -422,109 +534,10 @@ fun ParentDashboardScreen(
                         items(recentActivity, key = { it.id }) { activity ->
                             ActivityItem(activity)
                         }
-                        
-                        item { Spacer(Modifier.height(16.dp)) }
                     }
 
-                    item {
-                        Text(
-                            "My Children",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    items(children, key = { it.studentId }) { child ->
-                        val interactionSource = remember { MutableInteractionSource() }
-                        val isPressed by interactionSource.collectIsPressedAsState()
-                        val scale by MindGateMotion.tapScale(isPressed)
-
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .scale(scale),
-                            onClick = { onNavigateToChild(child.studentId) },
-                            interactionSource = interactionSource,
-                            colors = CardDefaults.cardColors(containerColor = SurfaceCard),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Surface(
-                                            modifier = Modifier.size(40.dp),
-                                            shape = CircleShape,
-                                            color = MaterialTheme.colorScheme.primaryContainer
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                                            }
-                                        }
-                                        Spacer(Modifier.width(12.dp))
-                                        Text(child.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                    }
-                                    
-                                    IconButton(onClick = { viewModel.revoke(child.studentId) }) {
-                                        Icon(Icons.Default.LinkOff, contentDescription = "Disconnect", tint = ActionDisabledText)
-                                    }
-                                }
-                                
-                                Spacer(Modifier.height(16.dp))
-                                
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Column {
-                                        Text("Today's Usage", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                        Text("Check details", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                                    }
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text("Current Status", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                                        Text(
-                                            text = child.status.replaceFirstChar { it.uppercase() },
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = if (child.status == "active") ActionSuccess else ActionWarning
-                                        )
-                                    }
-                                }
-                                
-                                Spacer(Modifier.height(16.dp))
-                                
-                                MindGateButton(
-                                    text = "View Details",
-                                    onClick = { onNavigateToChild(child.studentId) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    style = ButtonStyle.Neutral,
-                                    isSecondary = true,
-                                    icon = Icons.Default.Analytics
-                                )
-                            }
-                        }
-                    }
-
-                    item {
-                        Spacer(Modifier.height(32.dp))
-                        MindGateButton(
-                            text = "Logout",
-                            onClick = onLogout,
-                            modifier = Modifier.fillMaxWidth(),
-                            style = ButtonStyle.Danger,
-                            isSecondary = true,
-                            icon = Icons.AutoMirrored.Filled.Logout
-                        )
-                        Spacer(Modifier.height(16.dp))
-                    }
+                    item { Spacer(Modifier.height(32.dp)) }
                 }
-            }
-
-            if (isRefreshing && children.isEmpty()) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
         }
     }

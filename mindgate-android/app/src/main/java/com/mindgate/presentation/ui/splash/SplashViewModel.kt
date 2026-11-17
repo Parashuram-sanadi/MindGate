@@ -56,10 +56,6 @@ class SplashViewModel @Inject constructor(
                                 android.util.Log.d("MG_DIAG", "MG_DIAG: Splash routing decision = PARENT_DASHBOARD")
                                 Screen.ParentDashboard.route
                             }
-                            user.role == "student" && !user.assessmentCompleted -> {
-                                android.util.Log.d("MG_DIAG", "MG_DIAG: Splash routing decision = ASSESSMENT")
-                                Screen.Assessment.route
-                            }
                             user.role == "student" -> {
                                 val checkInDone = prefs.checkInDone.first()
                                 android.util.Log.d("MG_DIAG", "MG_DIAG: Splash routing decision = STUDENT_HOME (checkInDone=$checkInDone)")

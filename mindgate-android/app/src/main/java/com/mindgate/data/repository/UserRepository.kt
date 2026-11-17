@@ -19,6 +19,8 @@ import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
 
+import dagger.hilt.android.qualifiers.ApplicationContext
+
 sealed class GoogleAuthResult {
     data class Success(val userId: Long) : GoogleAuthResult()
     data class RoleRequired(val email: String) : GoogleAuthResult()
@@ -30,7 +32,8 @@ class UserRepository @Inject constructor(
     private val userDao: UserDao,
     private val sessionManager: SessionManager,
     private val prefs: PreferencesManager,
-    private val parentRepository: dagger.Lazy<ParentRepository>
+    private val parentRepository: dagger.Lazy<ParentRepository>,
+    @ApplicationContext private val context: android.content.Context
 ) {
     val currentUserId: Flow<Long> = prefs.currentUserId
 
@@ -259,6 +262,19 @@ class UserRepository @Inject constructor(
             Log.d("MINDGATE_FIREBASE_AUTH", "Firebase signed out successfully")
         } catch (e: Exception) {
             Log.e("MINDGATE_FIREBASE_AUTH", "Error during Firebase sign-out: ${e.message}")
+        }
+
+        // Sign out from Google Sign-In to force Account Chooser on next login
+        try {
+            val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+            ).requestEmail().build()
+            val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
+            googleSignInClient.signOut().await()
+            googleSignInClient.revokeAccess().await()
+            Log.d("MINDGATE_GOOGLE_AUTH", "Google Sign-In client signed out and access revoked successfully")
+        } catch (e: Exception) {
+            Log.e("MINDGATE_GOOGLE_AUTH", "Error during Google sign-out: ${e.message}")
         }
     }
 

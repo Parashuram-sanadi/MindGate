@@ -190,8 +190,8 @@ fun MindGateNavGraph(
                                 Screen.TeacherDashboard.route
                             }
                             "student" -> {
-                                Log.d("MG_DIAG", "MG_DIAG: routing decision = STUDENT_DASHBOARD (needsAssessment=$needsAssessment)")
-                                if (needsAssessment) Screen.AssessmentChoice.route else Screen.Home.route
+                                Log.d("MG_DIAG", "MG_DIAG: routing decision = STUDENT_DASHBOARD")
+                                Screen.Home.route
                             }
                             else -> {
                                 Log.d("MG_DIAG", "MG_DIAG: routing decision = FALLBACK/LANDING — reason: role [$userRole] did not match parent/teacher/student")
@@ -320,6 +320,9 @@ fun MindGateNavGraph(
             RoleGuard(navController, sessionManager, userRepository, "student") {
                 HomeScreen(
                     onRetakeAssessment = {
+                        navController.navigate(Screen.Assessment.route)
+                    },
+                    onStartAssessment = {
                         navController.navigate(Screen.Assessment.route)
                     },
                     onLogout = {

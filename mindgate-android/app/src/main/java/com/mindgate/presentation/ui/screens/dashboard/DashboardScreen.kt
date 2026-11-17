@@ -41,7 +41,10 @@ import dagger.hilt.android.EntryPointAccessors
 fun DashboardScreen(
     viewModel: HomeViewModel,
     onAddRestriction: () -> Unit,
-    onExploreClick: () -> Unit = {}
+    onExploreClick: () -> Unit = {},
+    onParentConnect: () -> Unit = {},
+    onStartAssessment: () -> Unit = {},
+    onRetakeAssessment: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -95,6 +98,7 @@ fun DashboardScreen(
             contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            // 1. Welcome Header
             item {
                 DashboardHeader(
                     userName = state.userName,
@@ -104,10 +108,26 @@ fun DashboardScreen(
                 )
             }
 
+            // 2. Parent Connectivity Widget
             item {
-                ConnectionStatusWidget(state.isLinked)
+                ConnectionStatusWidget(
+                    isLinked = state.isLinked,
+                    linkedParents = state.linkedParents,
+                    onParentConnect = onParentConnect
+                )
             }
 
+            // 3. Quick Actions Section
+            item {
+                QuickActionsSection(
+                    onAddRestriction = onAddRestriction,
+                    onParentConnect = onParentConnect,
+                    onExploreClick = onExploreClick,
+                    onStartAssessment = onStartAssessment
+                )
+            }
+
+            // 4. Gadget Usage Overview / Hero Widget
             if (!state.hasUsagePermission) {
                 item {
                     val entryPoint = remember {
@@ -133,6 +153,7 @@ fun DashboardScreen(
                     )
                 }
 
+                // 5. Application Usage Section (Today's Apps)
                 if (state.topAppsUsage.isNotEmpty()) {
                     item {
                         TodaysAppsSection(topApps = state.topAppsUsage)
@@ -140,6 +161,127 @@ fun DashboardScreen(
                 }
             }
 
+            // 6. Optional Assessment Card (Case A: Optional Start Card | Case B: Completed Profile Summary)
+            item {
+                if (state.risk == null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = PrimaryContainer.copy(alpha = 0.5f)),
+                        shape = Shapes.medium,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.3f))
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    modifier = Modifier.size(40.dp),
+                                    shape = CircleShape,
+                                    color = Primary
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(AppIcons.Analytics, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                    }
+                                }
+                                Spacer(Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Understand Your Digital Habits",
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = TextPrimary
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = "Take a short assessment to understand your gadget usage patterns and receive personalized insights.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = TextSecondary
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            MindGateButton(
+                                text = "Start Assessment",
+                                onClick = onStartAssessment,
+                                modifier = Modifier.fillMaxWidth(),
+                                style = ButtonStyle.Brand,
+                                icon = Icons.Default.PlayArrow
+                            )
+                        }
+                    }
+                } else {
+                    val riskLevel = state.risk?.riskLevel ?: "Moderate"
+                    val riskScore = state.risk?.riskScore ?: 0.0
+                    val rColor = com.mindgate.util.riskColor(riskLevel)
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+                        shape = Shapes.medium,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, rColor.copy(alpha = 0.3f))
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        color = rColor.copy(alpha = 0.15f),
+                                        shape = CircleShape,
+                                        modifier = Modifier.size(40.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(AppIcons.Analytics, contentDescription = null, tint = rColor, modifier = Modifier.size(20.dp))
+                                        }
+                                    }
+                                    Spacer(Modifier.width(12.dp))
+                                    Column {
+                                        Text("Risk Profile", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                                        Text(
+                                            text = riskLevel.uppercase(),
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                                            color = rColor
+                                        )
+                                    }
+                                }
+
+                                Surface(
+                                    color = rColor.copy(alpha = 0.1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        text = "Score: ${riskScore.toInt()}/100",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = rColor,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
+                                }
+                            }
+
+                            if (!state.risk?.topFactors.isNullOrEmpty()) {
+                                Spacer(Modifier.height(12.dp))
+                                Text("Top Risk Drivers:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = TextSecondary)
+                                state.risk?.topFactors?.take(2)?.forEach { factor ->
+                                    Text("• $factor", style = MaterialTheme.typography.bodySmall, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+                            MindGateButton(
+                                text = "Retake Assessment",
+                                onClick = onRetakeAssessment,
+                                modifier = Modifier.fillMaxWidth(),
+                                style = ButtonStyle.Neutral,
+                                isSecondary = true,
+                                icon = Icons.Default.Refresh
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 7. Manual Extension Request Widget
             item {
                 AnimatedContent(
                     targetState = state.requestStatus,
@@ -156,17 +298,27 @@ fun DashboardScreen(
                 }
             }
 
+            // 8. Explore Entry Portal
             item {
                 ExploreEntryCard(onClick = onExploreClick)
             }
 
+            // 9. Smart Usage Limits List Section
             item {
-                Text(
-                    text = "Restricted Apps",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
-                    color = TextPrimary,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Restricted Apps",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
+                        color = TextPrimary
+                    )
+                    TextButton(onClick = onAddRestriction) {
+                        Text("+ Manage Smart Limits", fontWeight = FontWeight.Bold, color = Primary)
+                    }
+                }
             }
 
             if (state.limits.isEmpty()) {
@@ -180,6 +332,80 @@ fun DashboardScreen(
             }
             
             item { Spacer(Modifier.height(80.dp)) }
+        }
+    }
+}
+
+@Composable
+fun QuickActionsSection(
+    onAddRestriction: () -> Unit,
+    onParentConnect: () -> Unit,
+    onExploreClick: () -> Unit,
+    onStartAssessment: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Quick Actions",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
+            color = TextPrimary,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            QuickActionChip(
+                label = "Smart Limits",
+                icon = AppIcons.Extension,
+                onClick = onAddRestriction,
+                modifier = Modifier.weight(1f)
+            )
+            QuickActionChip(
+                label = "Link Parent",
+                icon = Icons.Default.GroupAdd,
+                onClick = onParentConnect,
+                modifier = Modifier.weight(1f)
+            )
+            QuickActionChip(
+                label = "Explore",
+                icon = Icons.Default.Explore,
+                onClick = onExploreClick,
+                modifier = Modifier.weight(1f)
+            )
+            QuickActionChip(
+                label = "Assessment",
+                icon = AppIcons.Analytics,
+                onClick = onStartAssessment,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+fun QuickActionChip(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        color = SurfaceCard,
+        shape = Shapes.medium,
+        shadowElevation = 1.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, Outline.copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = Primary, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.height(6.dp))
+            Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = TextPrimary, maxLines = 1)
         }
     }
 }
@@ -327,46 +553,81 @@ fun TodaysAppsSection(topApps: List<AppUsageItem>) {
 }
 
 @Composable
-fun ConnectionStatusWidget(isLinked: Boolean) {
-    Surface(
+fun ConnectionStatusWidget(
+    isLinked: Boolean,
+    linkedParents: List<com.mindgate.data.remote.dto.LinkedParentInfo> = emptyList(),
+    onParentConnect: () -> Unit = {}
+) {
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        color = if (isLinked) ActionSuccess.copy(alpha = 0.08f) else SurfaceVariant,
-        shape = Shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = if (isLinked) ActionSuccess.copy(alpha = 0.08f) else SurfaceVariant),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
             color = if (isLinked) ActionSuccess.copy(alpha = 0.2f) else Outline
-        )
+        ),
+        shape = Shapes.medium
     ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = CircleShape,
-                color = if (isLinked) ActionSuccess.copy(alpha = 0.15f) else ActionDisabled
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = if (isLinked) AppIcons.Approved else Icons.Default.LinkOff,
-                        contentDescription = null,
-                        tint = if (isLinked) ActionSuccess else TextSecondary,
-                        modifier = Modifier.size(24.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        modifier = Modifier.size(40.dp),
+                        shape = CircleShape,
+                        color = if (isLinked) ActionSuccess.copy(alpha = 0.15f) else ActionDisabled
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (isLinked) AppIcons.Approved else Icons.Default.LinkOff,
+                                contentDescription = null,
+                                tint = if (isLinked) ActionSuccess else TextSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = if (isLinked) "Parent Connected" else "Parent Not Connected",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = if (isLinked) Success else TextPrimary
+                        )
+                        Text(
+                            text = if (isLinked) "${linkedParents.size.coerceAtLeast(1)} parent account(s) linked" else "Link a parent to enable remote monitoring",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                    }
+                }
+
+                TextButton(onClick = onParentConnect) {
+                    Text("+ Link Parent", fontWeight = FontWeight.Bold, color = Primary)
                 }
             }
-            Spacer(Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = if (isLinked) "Parent Connected" else "Parent Not Connected",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = if (isLinked) Success else TextPrimary
-                )
-                Text(
-                    text = if (isLinked) "Your usage is being monitored" else "Link a parent to enable remote monitoring",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
-                )
+
+            if (linkedParents.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                linkedParents.forEach { parent ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Person, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(parent.parentName, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                        }
+                        Surface(color = ActionSuccess.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp)) {
+                            Text("Linked", style = MaterialTheme.typography.labelSmall, color = ActionSuccess, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+                        }
+                    }
+                }
             }
         }
     }

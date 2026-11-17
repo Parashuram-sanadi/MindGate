@@ -36,11 +36,22 @@ class ParentDashboardViewModel @Inject constructor(
     private val _recentActivity = MutableStateFlow<List<ExtensionRequest>>(emptyList())
     val recentActivity = _recentActivity.asStateFlow()
 
-    val children = repository.children.stateIn(
+    private val _selectedStudentId = MutableStateFlow<Long?>(null)
+    val selectedStudentId = _selectedStudentId.asStateFlow()
+
+    val children = repository.children.onEach { list ->
+        if (list.isNotEmpty() && (_selectedStudentId.value == null || list.none { it.studentId == _selectedStudentId.value })) {
+            _selectedStudentId.value = list.first().studentId
+        }
+    }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
+
+    fun selectStudent(studentId: Long) {
+        _selectedStudentId.value = studentId
+    }
 
     init {
         refresh()

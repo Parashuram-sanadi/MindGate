@@ -50,6 +50,7 @@ class ParentConnectionViewModel @Inject constructor(
             _isLoading.value = true
             _error.value = null
             _isExpired.value = false // Reset expiry state immediately
+            _isLinked.value = false  // Reset linked state for new code generation
             _linkCode.value = null   // Clear old code to show loading spinner
             
             try {

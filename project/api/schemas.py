@@ -224,6 +224,11 @@ class LinkAcceptResponse(BaseModel):
     linked_at: datetime
     student_firebase_uid: Optional[str] = None
 
+class LinkedParentInfo(BaseModel):
+    parent_id: int
+    parent_name: str
+    parent_firebase_uid: Optional[str] = None
+
 class ConnectionStatusResponse(BaseModel):
     is_linked: bool
     role: str
@@ -231,6 +236,7 @@ class ConnectionStatusResponse(BaseModel):
     linked_parent_id: Optional[int] = None
     linked_parent_firebase_uid: Optional[str] = None
     linked_student_ids: Optional[List[int]] = None
+    linked_parents: Optional[List[LinkedParentInfo]] = None
 
 class ChildResponse(BaseModel):
     student_id: int
